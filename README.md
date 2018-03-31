@@ -14,4 +14,4 @@ I'm not sure about the exact model of the microphone sensor. But you get the ide
 
 Finally here's a photo:
 
-![Photo](images/noisemeter.png)
+![Photo](images/noisemeter.jpg)
