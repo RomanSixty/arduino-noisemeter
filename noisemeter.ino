@@ -1,3 +1,15 @@
+/**
+ * LX' noisemeter
+ * written by LX in 2018
+ * for Arduino/Genuino Nano
+ * 
+ * a noise indicator using 10 colored LEDs from an Adafruit LED strip
+ * self calibrating by using running averages
+ * (Library by Rob Tillaart)
+ * 
+ * BSD license, all text above must be included in any redistribution.
+ */
+
 #include <Adafruit_NeoPixel.h>
 #include "RunningAverage.h"
 
@@ -5,13 +17,14 @@
 #define LEDPIN     8
 #define MIC       A6
 
+// estimation of largest amplitude
+// based on measurements
+
+#define max_amplitude 20
+
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel ( NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800 );
 
 RunningAverage readings(100);
-
-// größte Amplitude in etwa
-// aus Messwerten geschätzt
-int max_amplitude   = 20;
 
 void setup()
 {
@@ -24,8 +37,9 @@ void loop()
 {
   int sensorReading = analogRead ( MIC );
 
-  // wir berechnen den Durchschnitt, um aus der Differenz zum
-  // aktuellen Messwert die Amplitude zu ermitteln
+  // reading a long term average to get the current calibration
+  // difference between this average and the current reading
+  // is the amplitude we're trying to visualize
 
   readings.addValue ( sensorReading );
   int median = readings.getAverage();
@@ -40,25 +54,26 @@ void loop()
   Serial.println(median);
 */
 
-  int shine      = map ( amplitude, 0, max_amplitude, 0, NUMPIXELS       ); // "LED an" vs. "LED aus"
-  int brightness = map ( amplitude, 0, max_amplitude, 0, NUMPIXELS * 255 ); // Helligkeit jeder LED
+  byte shine      = map ( amplitude, 0, max_amplitude, 0, NUMPIXELS       ); // how many LEDs are turned on at all
+  int  brightness = map ( amplitude, 0, max_amplitude, 0, NUMPIXELS * 255 ); // combined brightness values of all LEDs
 
-  for ( int i = 0; i < NUMPIXELS; i++ )
+  for ( byte i = 0; i < NUMPIXELS; i++ )
   {
-    int curr_brightness = min ( 255, brightness );
+    byte curr_brightness = min ( 255, brightness );
     brightness         -= curr_brightness;
 
-    // das erste Licht soll immer an sein, das Flackern nervt sonst
+    // the first LED should always be on
+    // otherwise its constant flicker will drive me nuts
+
     if ( i == 0 ) curr_brightness = 80;
 
-    // die drei Farbkanäle
-    // die erste LED soll Grün, die letzte Rot sein
-    // Grün machen wir um ein Drittel weniger intensiv, weil das sehr hell ist
-    // Blauanteile haben wir keine
+    // three color channels
+    // the first LED is pure green, the last one pure red
+    // intensity for the green channel is reduced because that's a very bright color
     
-    int color_r = map ( i, 0, NUMPIXELS,                   0, curr_brightness );
-    int color_g = map ( i, 0, NUMPIXELS, curr_brightness / 3,               0 );
-    int color_b = 0;
+    byte color_r = map ( i, 0, NUMPIXELS,                   0, curr_brightness );
+    byte color_g = map ( i, 0, NUMPIXELS, curr_brightness / 3,               0 );
+    byte color_b = 0;
     
     if ( i <= shine )
       pixels.setPixelColor ( i, pixels.Color ( color_r, color_g, color_b ) );
